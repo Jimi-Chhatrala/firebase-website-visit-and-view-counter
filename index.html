@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Visitor Counter</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="counter-container">
+      <h1>Firebase Website Visit and View Counter</h1>
+      <p>
+        Refresh to see (Pageviews) changes | Visit the same page in new tab to
+        see (Visits) changes.
+      </p>
+      <span id="visitor-count">Loading...</span>
+    </div>
+
+    <!-- Firebase SDKs (Non-Module CDN Links) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <!-- Firebase Configuration and Logic -->
+    <script>
+      // Your Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyBj0HtA-vyVz_g4LQ7Njuvm-fsr1zFFA2Y",
+        authDomain: "website-visitor-counter.firebaseapp.com",
+        projectId: "website-visitor-counter",
+        storageBucket: "website-visitor-counter.appspot.com",
+        messagingSenderId: "1040813132571",
+        appId: "1:1040813132571:web:4bb0e95a6635d95e9b21be",
+      };
+
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+
+      // Function to update visitor and pageview counts
+      async function updateCounter(type) {
+        const counterRef = db.collection("counters").doc("visitor_count");
+        try {
+          await db
+            .runTransaction(async (transaction) => {
+              const doc = await transaction.get(counterRef);
+              if (!doc.exists) {
+                transaction.set(counterRef, { visits: 0, pageviews: 0 });
+                return { visits: 0, pageviews: 0 };
+              }
+              const data = doc.data();
+              if (type === "type=visit-pageview") {
+                transaction.update(counterRef, {
+                  visits: data.visits + 1,
+                  pageviews: data.pageviews + 1,
+                });
+                return {
+                  visits: data.visits + 1,
+                  pageviews: data.pageviews + 1,
+                };
+              } else if (type === "type=pageview") {
+                transaction.update(counterRef, {
+                  pageviews: data.pageviews + 1,
+                });
+                return { visits: data.visits, pageviews: data.pageviews + 1 };
+              }
+            })
+            .then((counts) => {
+              document.getElementById(
+                "visitor-count"
+              ).textContent = `Visits: ${counts.visits}, Pageviews: ${counts.pageviews}`;
+            });
+        } catch (error) {
+          console.error("Error updating counter:", error);
+        }
+      }
+
+      // Check sessionStorage to determine if it's a new visit or just a pageview
+      function checkAndUpdateCounter() {
+        if (sessionStorage.getItem("visit") === null) {
+          // New visit and pageview
+          updateCounter("type=visit-pageview");
+          sessionStorage.setItem("visit", "x");
+        } else {
+          // Pageview
+          updateCounter("type=pageview");
+        }
+      }
+
+      // Call the function to update the count when the page loads
+      checkAndUpdateCounter();
+    </script>
+  </body>
+</html>
